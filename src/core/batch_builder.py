@@ -1,9 +1,9 @@
 """
-Tujuan: Batch processing untuk membangun multiple file Python
-Dependensi: src.core.builder, src.utils.file_utils
+Tujuan: Batch builder untuk membangun beberapa proyek sekaligus.
+Dependensi: logging, os, src.core.builder
 Tanggal Pembuatan: 24 Juni 2025
 Penulis: Tim Pengembangan
-Contoh: batch = BatchBuilder().build_multiple(["file1.py", "file2.py"], "exe")
+Contoh: Digunakan oleh EnhancedMainWindow untuk batch build.
 """
 
 import logging

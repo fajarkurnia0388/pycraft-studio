@@ -1,5 +1,17 @@
 # PyCraft Studio - Enhanced
 
+## 📚 Dokumentasi Lengkap
+
+- [Quick Start](docs/QUICK_START.md)
+- [Workflow Lengkap](docs/WORKFLOW.md)
+- [Panduan Fitur & API](docs/DOCUMENTATION.md)
+- [Panduan Installer](docs/installer_guide.md)
+- [FAQ & Troubleshooting](docs/README_FAQ.md)
+- [Changelog](CHANGELOG.md)
+- [Progress Log](progress_log.md)
+
+> Semua dokumentasi tambahan kini ada di folder `docs/` untuk kemudahan navigasi dan kerapian.
+
 ## Tentang PyCraft Studio
 
 **PyCraft Studio** adalah aplikasi desktop berbasis Python yang dirancang untuk membantu developer membuat, mengelola, dan membangun proyek Python secara terstandarisasi agar dapat dengan mudah dikonversi menjadi aplikasi executable (.exe, .app, ELF) di berbagai sistem operasi (Windows, Linux, MacOS). Dengan fitur project templating, dependency analysis, validasi struktur, dan build system otomatis, PyCraft Studio memastikan setiap proyek Python yang dibuat sudah sesuai standar terbaik dan siap didistribusikan ke end-user tanpa repot.

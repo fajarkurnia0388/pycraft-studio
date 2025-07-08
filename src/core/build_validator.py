@@ -1,9 +1,9 @@
 """
-Tujuan: Validasi struktur dan kualitas proyek Python
-Dependensi: os, typing, logging
+Tujuan: Validasi struktur dan konfigurasi proyek sebelum build.
+Dependensi: os, logging
 Tanggal Pembuatan: 24 Juni 2025
 Penulis: Tim Pengembangan
-Contoh: validator = BuildConfigValidator().validate_project("project_dir")
+Contoh: Digunakan untuk validasi otomatis sebelum proses build.
 """
 
 import os

@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class EnhancedProjectBuilder(ProjectBuilder):
     """Enhanced builder dengan validasi dan optimasi otomatis."""
     
-    def __init__(self, output_directory: Optional[str] = None):
+    def __init__(self, output_directory: Optional[str] = None) -> None:
         super().__init__(output_directory)
         self.template_generator = ProjectTemplateGenerator()
         self.dependency_analyzer = DependencyAnalyzer()

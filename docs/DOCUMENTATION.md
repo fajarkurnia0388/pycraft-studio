@@ -67,8 +67,7 @@
 - `src/core/config.py` - Configuration management
 
 ### Entry Points
-- `main.py` - Original application
-- `main_enhanced.py` - Enhanced application (recommended)
+- `main.py` - Entry point utama aplikasi (jalankan dengan `python -m src.main`)
 
 ---
 

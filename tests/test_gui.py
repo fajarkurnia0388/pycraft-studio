@@ -220,3 +220,28 @@ class TestEnhancedMainWindow:
             
             # Verify tab was added to notebook
             self.window.notebook.add.assert_called_once() 
+
+    def test_open_project_wizard(self):
+        """Test wizard project baru dapat dibuka tanpa error dan step awal muncul."""
+        with patch('tkinter.Toplevel') as mock_toplevel, \
+             patch('tkinter.ttk.Frame') as mock_frame, \
+             patch('tkinter.ttk.Label') as mock_label, \
+             patch('tkinter.ttk.Combobox') as mock_combo, \
+             patch('tkinter.StringVar') as mock_stringvar, \
+             patch('tkinter.IntVar') as mock_intvar:
+            mock_toplevel_instance = Mock()
+            mock_toplevel.return_value = mock_toplevel_instance
+            mock_frame_instance = Mock()
+            mock_frame.return_value = mock_frame_instance
+            mock_label_instance = Mock()
+            mock_label.return_value = mock_label_instance
+            mock_combo_instance = Mock()
+            mock_combo.return_value = mock_combo_instance
+            mock_stringvar.return_value = Mock()
+            mock_intvar.return_value = Mock()
+            # Panggil wizard
+            self.window.open_project_wizard()
+            # Pastikan wizard window dibuat
+            mock_toplevel.assert_called_once()
+            # Pastikan step awal (frame) dibuat
+            mock_frame.assert_any_call(mock_toplevel_instance) 

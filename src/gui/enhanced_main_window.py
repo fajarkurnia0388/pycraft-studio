@@ -9,6 +9,10 @@ from tkinter import ttk, filedialog, messagebox, scrolledtext, colorchooser
 from pathlib import Path
 import threading
 import logging
+import os
+from typing import Optional, Callable, Any
+import urllib.request
+import json
 
 from ..core.enhanced_builder import EnhancedProjectBuilder
 from ..core.config import ConfigManager
@@ -20,7 +24,7 @@ logger = logging.getLogger(__name__)
 class EnhancedMainWindow:
     """Enhanced main window dengan fitur project management."""
     
-    def __init__(self):
+    def __init__(self) -> None:
         self.root = tk.Tk()
         self.root.title("PyCraft Studio - Enhanced")
         self.root.geometry("1000x700")
@@ -47,7 +51,7 @@ class EnhancedMainWindow:
         self.current_project_path = None
         self.build_thread = None
         
-    def setup_ui(self):
+    def setup_ui(self) -> None:
         """Setup user interface."""
         # Create notebook for tabs
         self.notebook = ttk.Notebook(self.root)
@@ -66,7 +70,7 @@ class EnhancedMainWindow:
         # Tambahkan status bar ke themable_widgets
         self.themable_widgets.append(self.status_bar)
         
-    def create_build_tab(self):
+    def create_build_tab(self) -> None:
         """Create build tab."""
         build_frame = ttk.Frame(self.notebook)
         self.notebook.add(build_frame, text="Build")
@@ -94,6 +98,12 @@ class EnhancedMainWindow:
         self.output_dir_var = tk.StringVar(value="output")
         ttk.Entry(options_frame, textvariable=self.output_dir_var, width=40).grid(row=1, column=1, padx=5, sticky=tk.W)
         ttk.Button(options_frame, text="Browse", command=self.browse_output_dir).grid(row=1, column=2)
+
+        # Custom build arguments
+        ttk.Label(options_frame, text="Custom Build Args:").grid(row=2, column=0, sticky=tk.W)
+        self.custom_args_var = tk.StringVar()
+        ttk.Entry(options_frame, textvariable=self.custom_args_var, width=40).grid(row=2, column=1, padx=5, sticky=tk.W)
+        ttk.Label(options_frame, text="(opsional, contoh: --onefile --icon=myicon.ico)").grid(row=2, column=2, sticky=tk.W)
         
         # Build buttons
         button_frame = ttk.Frame(build_frame)
@@ -124,7 +134,7 @@ class EnhancedMainWindow:
         # Tambahkan log_text ke themable_widgets
         self.themable_widgets.append(self.log_text)
         
-    def create_project_tab(self):
+    def create_project_tab(self) -> None:
         """Create project template tab."""
         project_frame = ttk.Frame(self.notebook)
         self.notebook.add(project_frame, text="Project Templates")
@@ -166,7 +176,11 @@ class EnhancedMainWindow:
                                                command=self.create_project)
         self.create_project_button.pack(side=tk.LEFT, padx=5)
         
-    def create_analysis_tab(self):
+        # Wizard Project Baru
+        self.wizard_button = ttk.Button(button_frame, text="Wizard Project Baru", command=self.open_project_wizard)
+        self.wizard_button.pack(side=tk.LEFT, padx=5)
+        
+    def create_analysis_tab(self) -> None:
         """Create dependency analysis tab."""
         analysis_frame = ttk.Frame(self.notebook)
         self.notebook.add(analysis_frame, text="Dependency Analysis")
@@ -196,7 +210,7 @@ class EnhancedMainWindow:
         self.analysis_text.pack(fill=tk.BOTH, expand=True)
         self.themable_widgets.append(self.analysis_text)
         
-    def create_validation_tab(self):
+    def create_validation_tab(self) -> None:
         """Create project validation tab."""
         validation_frame = ttk.Frame(self.notebook)
         self.notebook.add(validation_frame, text="Project Validation")
@@ -226,7 +240,7 @@ class EnhancedMainWindow:
         self.validation_text.pack(fill=tk.BOTH, expand=True)
         self.themable_widgets.append(self.validation_text)
         
-    def create_settings_tab(self):
+    def create_settings_tab(self) -> None:
         """Create settings tab."""
         settings_frame = ttk.Frame(self.notebook)
         self.notebook.add(settings_frame, text="Settings")
@@ -292,13 +306,13 @@ class EnhancedMainWindow:
         # Save button
         ttk.Button(config_frame, text="Save Settings", command=self.save_settings).grid(row=4, column=0, pady=10)
 
-    def update_theme_color_inputs(self):
+    def update_theme_color_inputs(self) -> None:
         theme = self.theme_var.get()
         style = self.theme_manager.get_style_dict(theme)
         for key, var in self.color_vars.items():
             var.set(style.get(key, ""))
 
-    def update_theme_action_buttons(self):
+    def update_theme_action_buttons(self) -> None:
         theme = self.theme_var.get()
         is_default = theme in self.theme_manager.DEFAULT_THEMES
         is_custom = theme in self.theme_manager.custom_themes
@@ -306,19 +320,19 @@ class EnhancedMainWindow:
         self.delete_btn.config(state=tk.NORMAL if is_custom else tk.DISABLED)
         self.set_default_btn.config(state=tk.NORMAL if is_default else tk.DISABLED)
 
-    def on_theme_selected(self, event=None):
+    def on_theme_selected(self, event: Optional[Any] = None) -> None:
         theme = self.theme_var.get()
         self.update_theme_color_inputs()
         self.update_theme_action_buttons()
         self.theme_manager.apply_theme(theme)
         self.update_widget_themes()
 
-    def choose_color(self, key):
+    def choose_color(self, key: str) -> None:
         color = colorchooser.askcolor(title=f"Pilih {key.capitalize()}", initialcolor=self.color_vars[key].get())
         if color[1]:
             self.color_vars[key].set(color[1])
 
-    def apply_theme_colors(self):
+    def apply_theme_colors(self) -> None:
         theme = self.theme_var.get()
         style = {k: v.get() for k, v in self.color_vars.items()}
         self.theme_manager.set_theme_colors(theme, style)
@@ -328,7 +342,7 @@ class EnhancedMainWindow:
         self.update_widget_themes()
         messagebox.showinfo("Success", f"Theme '{theme}' updated.")
 
-    def reset_theme(self):
+    def reset_theme(self) -> None:
         theme = self.theme_var.get()
         self.theme_manager.reset_theme(theme)
         self.update_theme_color_inputs()
@@ -336,7 +350,7 @@ class EnhancedMainWindow:
         self.update_widget_themes()
         messagebox.showinfo("Reset", f"Theme '{theme}' reset to default.")
 
-    def delete_theme(self):
+    def delete_theme(self) -> None:
         theme = self.theme_var.get()
         if theme in self.theme_manager.custom_themes:
             if messagebox.askyesno("Delete Theme", f"Delete custom theme '{theme}'?"):
@@ -347,7 +361,7 @@ class EnhancedMainWindow:
                 self.theme_var.set("light")
                 self.on_theme_selected()
 
-    def add_theme_dialog(self):
+    def add_theme_dialog(self) -> None:
         dialog = tk.Toplevel(self.root)
         dialog.title("Add Custom Theme")
         dialog.geometry("300x200")
@@ -392,7 +406,7 @@ class EnhancedMainWindow:
         if color[1]:
             color_vars[key].set(color[1])
         
-    def setup_menu(self):
+    def setup_menu(self) -> None:
         """Setup menu bar."""
         menubar = tk.Menu(self.root)
         self.root.config(menu=menubar)
@@ -416,49 +430,66 @@ class EnhancedMainWindow:
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Help", menu=help_menu)
         help_menu.add_command(label="About", command=self.show_about)
+        help_menu.add_command(label="Check for Updates", command=self.check_for_updates)
+        self.root.config(menu=menubar)
         
     # Event handlers
-    def browse_file(self):
-        """Browse for Python file."""
-        filename = filedialog.askopenfilename(
-            title="Select Python File",
-            filetypes=[("Python files", "*.py"), ("All files", "*.*")]
-        )
-        if filename:
-            self.file_path_var.set(filename)
-            self.current_project_path = str(Path(filename).parent)
+    def browse_file(self) -> None:
+        """Browse file dan validasi file Python."""
+        file_path = filedialog.askopenfilename(filetypes=[("Python Files", "*.py")])
+        if file_path:
+            if not os.path.isfile(file_path):
+                messagebox.showerror("File Error", "File tidak ditemukan.")
+                return
+            if not file_path.endswith('.py'):
+                messagebox.showerror("File Error", "File harus berekstensi .py.")
+                return
+            self.file_path_var.set(file_path)
+            self.current_project_path = str(Path(file_path).parent)
     
-    def browse_output_dir(self):
-        """Browse for output directory."""
-        directory = filedialog.askdirectory(title="Select Output Directory")
-        if directory:
-            self.output_dir_var.set(directory)
+    def browse_output_dir(self) -> None:
+        """Browse dan validasi output directory."""
+        dir_path = filedialog.askdirectory()
+        if dir_path:
+            if not os.path.isdir(dir_path):
+                messagebox.showerror("Folder Error", "Folder tidak ditemukan.")
+                return
+            self.output_dir_var.set(dir_path)
     
-    def browse_project_path(self):
-        """Browse for project path."""
-        directory = filedialog.askdirectory(title="Select Project Directory")
-        if directory:
-            self.project_path_var.set(directory)
+    def browse_project_path(self) -> None:
+        """Browse dan validasi project path."""
+        dir_path = filedialog.askdirectory()
+        if dir_path:
+            if not os.path.isdir(dir_path):
+                messagebox.showerror("Folder Error", "Folder tidak ditemukan.")
+                return
+            self.project_path_var.set(dir_path)
     
-    def browse_analysis_path(self):
-        """Browse for analysis path."""
-        directory = filedialog.askdirectory(title="Select Project Directory")
-        if directory:
-            self.analysis_path_var.set(directory)
+    def browse_analysis_path(self) -> None:
+        """Browse dan validasi analysis path."""
+        dir_path = filedialog.askdirectory()
+        if dir_path:
+            if not os.path.isdir(dir_path):
+                messagebox.showerror("Folder Error", "Folder tidak ditemukan.")
+                return
+            self.analysis_path_var.set(dir_path)
     
-    def browse_validation_path(self):
-        """Browse for validation path."""
-        directory = filedialog.askdirectory(title="Select Project Directory")
-        if directory:
-            self.validation_path_var.set(directory)
+    def browse_validation_path(self) -> None:
+        """Browse dan validasi validation path."""
+        dir_path = filedialog.askdirectory()
+        if dir_path:
+            if not os.path.isdir(dir_path):
+                messagebox.showerror("Folder Error", "Folder tidak ditemukan.")
+                return
+            self.validation_path_var.set(dir_path)
     
-    def browse_default_output(self):
+    def browse_default_output(self) -> None:
         """Browse for default output directory."""
         directory = filedialog.askdirectory(title="Select Default Output Directory")
         if directory:
             self.default_output_var.set(directory)
     
-    def on_template_selected(self, event):
+    def on_template_selected(self, event: Any) -> None:
         """Handle template selection."""
         template_name = self.template_var.get()
         if template_name:
@@ -473,7 +504,7 @@ Additional Files: {', '.join(template_info.additional_files)}
                 self.template_info_text.delete(1.0, tk.END)
                 self.template_info_text.insert(1.0, info_text)
     
-    def create_project(self):
+    def create_project(self) -> None:
         """Create new project from template."""
         project_name = self.project_name_var.get().strip()
         template_name = self.template_var.get()
@@ -498,22 +529,29 @@ Additional Files: {', '.join(template_info.additional_files)}
         except Exception as e:
             messagebox.showerror("Error", f"Failed to create project: {e}")
     
-    def start_build(self):
-        """Start build process."""
-        file_path = self.file_path_var.get().strip()
+    def start_build(self) -> None:
+        """Start build process dengan custom args."""
+        file_path = self.file_path_var.get()
         output_format = self.format_var.get()
-        
-        if not file_path:
-            messagebox.showerror("Error", "Please select a Python file")
+        output_dir = self.output_dir_var.get()
+        custom_args = self.custom_args_var.get().strip()
+        if not file_path or not output_format or not output_dir:
+            messagebox.showerror("Input Error", "Lengkapi semua input build.")
             return
-        
-        # Check if auto validation is enabled
-        if self.auto_validation_var.get():
-            self.start_build_with_validation(file_path, output_format)
-        else:
-            self.start_normal_build(file_path, output_format)
+        self.progress_var.set("Building...")
+        self.progress_bar.start()
+        self.build_button.config(state=tk.DISABLED)
+        self.cancel_button.config(state=tk.NORMAL)
+        self.log_text.delete(1.0, tk.END)
+        # Jalankan build di thread terpisah
+        self.build_thread = threading.Thread(
+            target=self._build_thread,
+            args=(file_path, output_format, output_dir, custom_args),
+            daemon=True
+        )
+        self.build_thread.start()
     
-    def start_build_with_validation(self, file_path: str, output_format: str):
+    def start_build_with_validation(self, file_path: str, output_format: str) -> None:
         """Start build with validation."""
         self.build_thread = threading.Thread(
             target=self._build_with_validation_thread,
@@ -526,7 +564,7 @@ Additional Files: {', '.join(template_info.additional_files)}
         self.progress_bar.start()
         self.progress_var.set("Building with validation...")
     
-    def start_normal_build(self, file_path: str, output_format: str):
+    def start_normal_build(self, file_path: str, output_format: str) -> None:
         """Start normal build."""
         self.build_thread = threading.Thread(
             target=self._build_thread,
@@ -539,7 +577,7 @@ Additional Files: {', '.join(template_info.additional_files)}
         self.progress_bar.start()
         self.progress_var.set("Building...")
     
-    def _build_with_validation_thread(self, file_path: str, output_format: str):
+    def _build_with_validation_thread(self, file_path: str, output_format: str) -> None:
         """Build thread with validation."""
         try:
             project_path = str(Path(file_path).parent)
@@ -550,44 +588,35 @@ Additional Files: {', '.join(template_info.additional_files)}
         except Exception as e:
             self.root.after(0, self._build_error, str(e))
     
-    def _build_thread(self, file_path: str, output_format: str):
-        """Normal build thread."""
+    def _build_thread(self, file_path: str, output_format: str, output_dir: str, custom_args: str) -> None:
         try:
-            result = self.builder.build(file_path, output_format)
-            self.root.after(0, self._build_completed, result)
-            
+            # Konversi custom_args string ke list jika tidak kosong
+            args_list = custom_args.split() if custom_args else None
+            # Set output directory jika berbeda
+            if output_dir:
+                self.builder.output_directory = output_dir
+            result = self.builder.build(file_path, output_format, args_list)
+            self.root.after(0, lambda: self._build_completed(result))
         except Exception as e:
-            self.root.after(0, self._build_error, str(e))
+            self.root.after(0, lambda: self._build_error(str(e)))
     
-    def _build_completed(self, result):
-        """Handle build completion."""
+    def _build_completed(self, result: Any) -> None:
         self.progress_bar.stop()
         self.build_button.config(state=tk.NORMAL)
         self.cancel_button.config(state=tk.DISABLED)
-        
-        if result.success:
-            self.progress_var.set(f"Build completed successfully in {result.build_time:.2f}s")
-            self.log_text.insert(tk.END, f"\nBuild successful!\nOutput: {result.output_path}\n")
-            messagebox.showinfo("Success", f"Build completed!\nOutput: {result.output_path}")
-        else:
-            self.progress_var.set("Build failed")
-            self.log_text.insert(tk.END, f"\nBuild failed: {result.error_message}\n")
-            messagebox.showerror("Error", f"Build failed: {result.error_message}")
-        
-        # Add log output
-        if result.log_output:
-            self.log_text.insert(tk.END, f"\n{result.log_output}\n")
+        self.progress_var.set("Ready")
+        self.log_text.insert(tk.END, f"Build selesai: {result}\n")
+        messagebox.showinfo("Build Sukses", f"Build selesai: {result}")
     
-    def _build_error(self, error: str):
-        """Handle build error."""
+    def _build_error(self, error: str) -> None:
         self.progress_bar.stop()
         self.build_button.config(state=tk.NORMAL)
         self.cancel_button.config(state=tk.DISABLED)
-        self.progress_var.set("Build failed")
-        self.log_text.insert(tk.END, f"\nError: {error}\n")
-        messagebox.showerror("Error", f"Build error: {error}")
+        self.progress_var.set("Ready")
+        self.log_text.insert(tk.END, f"Build gagal: {error}\n")
+        messagebox.showerror("Build Gagal", f"Build gagal: {error}")
     
-    def cancel_build(self):
+    def cancel_build(self) -> None:
         """Cancel build process."""
         if self.builder.cancel_build():
             self.progress_bar.stop()
@@ -596,7 +625,7 @@ Additional Files: {', '.join(template_info.additional_files)}
             self.progress_var.set("Build cancelled")
             self.log_text.insert(tk.END, "\nBuild cancelled by user\n")
     
-    def analyze_project(self):
+    def analyze_project(self) -> None:
         """Analyze project dependencies."""
         project_path = self.analysis_path_var.get().strip()
         if not project_path:
@@ -617,7 +646,7 @@ Additional Files: {', '.join(template_info.additional_files)}
         except Exception as e:
             messagebox.showerror("Error", f"Analysis failed: {e}")
     
-    def generate_requirements(self):
+    def generate_requirements(self) -> None:
         """Generate requirements.txt."""
         project_path = self.analysis_path_var.get().strip()
         if not project_path:
@@ -634,7 +663,7 @@ Additional Files: {', '.join(template_info.additional_files)}
         except Exception as e:
             messagebox.showerror("Error", f"Failed to generate requirements: {e}")
     
-    def validate_dependencies(self):
+    def validate_dependencies(self) -> None:
         """Validate project dependencies."""
         project_path = self.analysis_path_var.get().strip()
         if not project_path:
@@ -653,7 +682,7 @@ Additional Files: {', '.join(template_info.additional_files)}
         except Exception as e:
             messagebox.showerror("Error", f"Validation failed: {e}")
     
-    def validate_structure(self):
+    def validate_structure(self) -> None:
         """Validate project structure."""
         project_path = self.validation_path_var.get().strip()
         if not project_path:
@@ -675,7 +704,7 @@ Additional Files: {', '.join(template_info.additional_files)}
         except Exception as e:
             messagebox.showerror("Error", f"Validation failed: {e}")
     
-    def generate_report(self):
+    def generate_report(self) -> None:
         """Generate comprehensive project report."""
         project_path = self.validation_path_var.get().strip()
         if not project_path:
@@ -690,7 +719,7 @@ Additional Files: {', '.join(template_info.additional_files)}
         except Exception as e:
             messagebox.showerror("Error", f"Failed to generate report: {e}")
     
-    def fix_structure(self):
+    def fix_structure(self) -> None:
         """Fix project structure."""
         project_path = self.validation_path_var.get().strip()
         if not project_path:
@@ -708,7 +737,7 @@ Additional Files: {', '.join(template_info.additional_files)}
         except Exception as e:
             messagebox.showerror("Error", f"Failed to fix structure: {e}")
     
-    def save_settings(self):
+    def save_settings(self) -> None:
         """Save application settings."""
         try:
             self.config_manager.update_config("default_output_dir", self.default_output_var.get())
@@ -719,7 +748,7 @@ Additional Files: {', '.join(template_info.additional_files)}
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save settings: {e}")
     
-    def open_project(self):
+    def open_project(self) -> None:
         """Open existing project."""
         directory = filedialog.askdirectory(title="Open Project")
         if directory:
@@ -727,7 +756,7 @@ Additional Files: {', '.join(template_info.additional_files)}
             self.validation_path_var.set(directory)
             self.notebook.select(2)  # Switch to analysis tab
     
-    def save_report(self):
+    def save_report(self) -> None:
         """Save current report."""
         filename = filedialog.asksaveasfilename(
             title="Save Report",
@@ -753,7 +782,7 @@ Additional Files: {', '.join(template_info.additional_files)}
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to save report: {e}")
     
-    def show_about(self):
+    def show_about(self) -> None:
         """Show about dialog."""
         about_text = """PyCraft Studio - Enhanced
 
@@ -770,7 +799,7 @@ Version: 2.0.0
 """
         messagebox.showinfo("About", about_text)
     
-    def update_widget_themes(self):
+    def update_widget_themes(self) -> None:
         """Update warna widget non-ttk agar sesuai tema aktif."""
         style_dict = self.theme_manager.get_style_dict(self.theme_manager.get_current_theme())
         for widget in self.themable_widgets:
@@ -781,11 +810,11 @@ Version: 2.0.0
         # Force refresh ttk styles
         self.root.update_idletasks()
     
-    def run(self):
+    def run(self) -> None:
         """Run the application."""
         self.root.mainloop() 
 
-    def set_as_default_theme(self):
+    def set_as_default_theme(self) -> None:
         theme = self.theme_var.get()
         if theme in self.theme_manager.DEFAULT_THEMES:
             if messagebox.askyesno("Set as Default", f"Yakin ingin mengubah default untuk theme '{theme}'?\nTindakan ini akan mengubah default reset theme."):
@@ -793,3 +822,135 @@ Version: 2.0.0
                 self.theme_manager.set_default_theme(theme, style)
                 self.config_manager.set_default_theme_overrides(self.theme_manager.default_theme_overrides)
                 messagebox.showinfo("Set as Default", f"Default untuk theme '{theme}' berhasil diubah.") 
+
+    def open_project_wizard(self) -> None:
+        """Buka wizard step-by-step pembuatan project baru."""
+        wizard = tk.Toplevel(self.root)
+        wizard.title("Wizard Project Baru")
+        wizard.geometry("500x400")
+        wizard.transient(self.root)
+        wizard.grab_set()
+
+        steps = ["Pilih Template", "Nama Project", "Lokasi Output", "Preview Struktur", "Konfirmasi"]
+        current_step = tk.IntVar(value=0)
+
+        # State
+        selected_template = tk.StringVar()
+        project_name = tk.StringVar()
+        output_path = tk.StringVar()
+        preview_text = tk.StringVar()
+        result_text = tk.StringVar()
+
+        def update_step():
+            for frame in step_frames:
+                frame.pack_forget()
+            step_frames[current_step.get()].pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            step_label.config(text=f"Step {current_step.get()+1}: {steps[current_step.get()]}")
+
+        def next_step():
+            if current_step.get() < len(steps)-1:
+                current_step.set(current_step.get()+1)
+                update_step()
+
+        def prev_step():
+            if current_step.get() > 0:
+                current_step.set(current_step.get()-1)
+                update_step()
+
+        def do_preview():
+            # Preview struktur project (sederhana)
+            name = project_name.get() or "my_project"
+            template = selected_template.get() or "console"
+            preview = f"{name}/\n  src/\n    main.py\n  requirements.txt\n  README.md\n  (template: {template})"
+            preview_text.set(preview)
+            next_step()
+
+        def do_create():
+            # Panggil builder
+            name = project_name.get()
+            template = selected_template.get()
+            out_path = output_path.get()
+            if not name or not template or not out_path:
+                result_text.set("Lengkapi semua data!")
+                return
+            result = self.builder.create_project_from_template(name, template, out_path)
+            if result.get("success"):
+                result_text.set(f"Project berhasil dibuat di {result.get('project_path')}")
+                messagebox.showinfo("Sukses", f"Project berhasil dibuat di {result.get('project_path')}")
+                wizard.destroy()
+            else:
+                result_text.set(f"Gagal: {result.get('error')}")
+                messagebox.showerror("Gagal", f"Gagal membuat project: {result.get('error')}")
+
+        # Step frames
+        step_frames = []
+        # Step 1: Pilih Template
+        frame1 = ttk.Frame(wizard)
+        ttk.Label(frame1, text="Pilih Template:").pack(anchor=tk.W, pady=5)
+        templates = self.builder.get_available_templates()
+        ttk.Combobox(frame1, textvariable=selected_template, values=templates, state="readonly").pack(fill=tk.X)
+        step_frames.append(frame1)
+        # Step 2: Nama Project
+        frame2 = ttk.Frame(wizard)
+        ttk.Label(frame2, text="Nama Project:").pack(anchor=tk.W, pady=5)
+        ttk.Entry(frame2, textvariable=project_name).pack(fill=tk.X)
+        step_frames.append(frame2)
+        # Step 3: Lokasi Output
+        frame3 = ttk.Frame(wizard)
+        ttk.Label(frame3, text="Lokasi Output:").pack(anchor=tk.W, pady=5)
+        out_entry = ttk.Entry(frame3, textvariable=output_path)
+        out_entry.pack(fill=tk.X, side=tk.LEFT, expand=True)
+        def browse_out():
+            path = filedialog.askdirectory()
+            if path:
+                output_path.set(path)
+        ttk.Button(frame3, text="Browse", command=browse_out).pack(side=tk.LEFT, padx=5)
+        step_frames.append(frame3)
+        # Step 4: Preview Struktur
+        frame4 = ttk.Frame(wizard)
+        ttk.Label(frame4, text="Preview Struktur Project:").pack(anchor=tk.W, pady=5)
+        ttk.Label(frame4, textvariable=preview_text, background="#f0f0f0", relief=tk.SUNKEN, anchor=tk.W, justify=tk.LEFT).pack(fill=tk.BOTH, expand=True)
+        step_frames.append(frame4)
+        # Step 5: Konfirmasi & Create
+        frame5 = ttk.Frame(wizard)
+        ttk.Label(frame5, text="Konfirmasi & Create Project").pack(anchor=tk.W, pady=5)
+        ttk.Label(frame5, textvariable=result_text, foreground="blue").pack(anchor=tk.W, pady=5)
+        ttk.Button(frame5, text="Buat Project", command=do_create).pack(pady=10)
+        step_frames.append(frame5)
+
+        # Step navigation
+        nav_frame = ttk.Frame(wizard)
+        nav_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=5)
+        step_label = ttk.Label(nav_frame, text="Step 1: Pilih Template")
+        step_label.pack(side=tk.LEFT, padx=5)
+        ttk.Button(nav_frame, text="< Sebelumnya", command=prev_step).pack(side=tk.LEFT, padx=5)
+        def next_or_preview():
+            if current_step.get() == 2:
+                do_preview()
+            elif current_step.get() < len(steps)-1:
+                next_step()
+        ttk.Button(nav_frame, text="Selanjutnya >", command=next_or_preview).pack(side=tk.LEFT, padx=5)
+        ttk.Button(nav_frame, text="Tutup", command=wizard.destroy).pack(side=tk.RIGHT, padx=5)
+
+        update_step() 
+
+    def check_for_updates(self) -> None:
+        """Cek versi terbaru dari GitHub Releases dan bandingkan dengan versi lokal."""
+        repo_api = "https://api.github.com/repos/fajarkurnia0388/pycraft-studio/releases/latest"
+        try:
+            with open("VERSION", "r") as f:
+                local_version = f.read().strip()
+        except Exception:
+            local_version = "unknown"
+        try:
+            with urllib.request.urlopen(repo_api, timeout=5) as response:
+                data = json.loads(response.read().decode())
+                latest_version = data.get("tag_name") or data.get("name")
+                html_url = data.get("html_url")
+                if latest_version and local_version != latest_version:
+                    msg = f"Versi terbaru tersedia: {latest_version}\nVersi lokal: {local_version}\nDownload: {html_url}"
+                    messagebox.showinfo("Update Tersedia", msg)
+                else:
+                    messagebox.showinfo("Up to Date", f"Aplikasi sudah versi terbaru: {local_version}")
+        except Exception as e:
+            messagebox.showerror("Cek Update Gagal", f"Gagal cek update: {e}") 

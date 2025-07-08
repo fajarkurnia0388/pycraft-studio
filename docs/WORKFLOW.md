@@ -46,11 +46,8 @@ pip install -r requirements.txt
 
 #### 4. Verifikasi Instalasi
 ```bash
-# Test aplikasi original
+# Jalankan aplikasi utama
 python -m src.main
-
-# Test aplikasi enhanced
-python main_enhanced.py
 ```
 
 ---
@@ -408,13 +405,13 @@ pytest tests/test_builder.py
 ### 1. Build untuk Multiple OS
 ```bash
 # Windows
-python main_enhanced.py  # Build .exe
+python -m src.main  # Build .exe
 
 # macOS
-python main_enhanced.py  # Build .app
+python -m src.main  # Build .app
 
 # Linux
-python main_enhanced.py  # Build binary
+python -m src.main  # Build binary
 ```
 
 ### 2. Optimasi Ukuran Executable
@@ -431,7 +428,7 @@ python main_enhanced.py  # Build binary
 ```bash
 # Script untuk build otomatis
 #!/bin/bash
-python main_enhanced.py --auto-build --project-path ./my_project
+python -m src.main --auto-build --project-path ./my_project
 ```
 
 ---

@@ -14,7 +14,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Any
 
 from src.utils.file_utils import FileManager, FileValidator
 
@@ -47,7 +47,7 @@ class BuildResult:
     output_path: Optional[str]
     error_message: Optional[str]
     build_time: float
-    status: BuildStatus
+    status: 'BuildStatus'
     log_output: str
 
 
@@ -59,7 +59,7 @@ class ProjectBuilder:
     validasi, error handling, dan progress tracking.
     """
 
-    def __init__(self, output_directory: Optional[str] = None):
+    def __init__(self, output_directory: Optional[str] = None) -> None:
         """
         Inisialisasi ProjectBuilder.
 
@@ -396,7 +396,7 @@ class ProjectBuilder:
 
         return output_path
 
-    def get_build_status(self) -> BuildStatus:
+    def get_build_status(self) -> 'BuildStatus':
         """
         Mendapatkan status build saat ini.
 

@@ -132,6 +132,18 @@ class ProjectTemplateGenerator:
                     "onefile": "True",
                     "name": "desktop_app"
                 }
+            ),
+            "cli_argparse": TemplateConfig(
+                name="CLI Argparse Application",
+                description="Aplikasi command line dengan argparse",
+                dependencies=[],
+                entry_point="src/main.py",
+                additional_files=["requirements.txt", "README.md", ".gitignore"],
+                build_config={
+                    "console": "True",
+                    "onefile": "True",
+                    "name": "cli_app"
+                }
             )
         }
     
@@ -645,7 +657,17 @@ def main():
 
 if __name__ == "__main__":
     main()
-'''
+''',
+            "cli_argparse": (
+                'import argparse\n\n'
+                'def main():\n'
+                '    parser = argparse.ArgumentParser(description="Aplikasi CLI dengan argparse")\n'
+                '    parser.add_argument("--name", default="World", help="Nama untuk disapa")\n'
+                '    args = parser.parse_args()\n'
+                '    print(f"Hello, {args.name}!")\n\n'
+                'if __name__ == "__main__":\n'
+                '    main()\n'
+            )
         }
         
         return templates.get(template_type, templates["console"])
