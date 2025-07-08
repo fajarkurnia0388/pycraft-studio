@@ -5,14 +5,14 @@
 ### 1. Install & Setup (2 menit)
 ```bash
 # Clone repository
-git clone <repository-url>
+git clone https://github.com/fajarkurnia0388/pycraft-studio.git
 cd PyCraft-Studio
 
 # Install dependencies
 pip install -r requirements.txt
 
 # Run aplikasi
-python main_enhanced.py
+python -m src.main
 ```
 
 ### 2. Build Script Pertama (3 menit)
@@ -29,7 +29,7 @@ if __name__ == "__main__":
 ```
 
 #### Build dengan GUI:
-1. Buka aplikasi `python main_enhanced.py`
+1. Buka aplikasi `python -m src.main`
 2. Tab "Build" → Browse → Pilih `hello.py`
 3. Output Format: `binary` (Linux) / `exe` (Windows) / `app` (macOS)
 4. Klik "Build"

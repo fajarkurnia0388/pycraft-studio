@@ -54,19 +54,49 @@ Aplikasi GUI Python untuk membangun script Python menjadi executable dengan fitu
 
 1. **Clone repository**
 ```bash
-git clone <repository-url>
-cd PyCraft-Studio
+git clone https://github.com/fajarkurnia0388/pycraft-studio.git
+cd pycraft-studio
 ```
 
-2. **Install dependencies**
+2. **(Opsional) Buat dan aktifkan virtual environment**
+```bash
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# Linux/Mac:
+source .venv/bin/activate
+```
+
+3. **Install dependencies**
 ```bash
 pip install -r requirements.txt
 ```
 
-3. **Run aplikasi**
+4. **Jalankan aplikasi**
 ```bash
 python -m src.main
 ```
+
+## 🛠️ Troubleshooting Umum
+
+- **PyInstaller not found:**
+  ```bash
+  pip install pyinstaller
+  ```
+- **File tidak valid:**
+  ```bash
+  python -m py_compile your_file.py
+  ```
+- **Dependencies missing:**
+  ```bash
+  pip install -r requirements.txt
+  ```
+- **Permission denied:**
+  ```bash
+  # Linux/Mac
+  chmod +w output/
+  # Windows: Run as Administrator
+  ```
 
 ## 📖 Penggunaan
 

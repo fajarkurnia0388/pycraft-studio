@@ -47,7 +47,7 @@ pip install -r requirements.txt
 #### 4. Verifikasi Instalasi
 ```bash
 # Test aplikasi original
-python main.py
+python -m src.main
 
 # Test aplikasi enhanced
 python main_enhanced.py
@@ -62,7 +62,7 @@ python main_enhanced.py
 #### Langkah-langkah:
 1. **Buka Aplikasi**
    ```bash
-   python main_enhanced.py
+   python -m src.main
    ```
 
 2. **Pilih Tab "Build"**
