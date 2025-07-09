@@ -7,11 +7,11 @@ Contoh: is_valid_python_file("script.py")
 """
 
 import logging
+import os
 import re
 import shutil
 from pathlib import Path
 from typing import List, Optional
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class FileValidator:
                 return False
 
             # Validasi ekstensi
-            if not file_path.endswith('.py'):
+            if not file_path.endswith(".py"):
                 logger.error(f"File harus ber ekstensi .py: {file_path}")
                 return False
 
@@ -69,9 +69,9 @@ class FileValidator:
 
             # Validasi syntax Python
             try:
-                with open(file_path, 'r', encoding='utf-8') as f:
+                with open(file_path, "r", encoding="utf-8") as f:
                     content = f.read()
-                    compile(content, file_path, 'exec')
+                    compile(content, file_path, "exec")
                 logger.debug(f"File Python valid: {file_path}")
                 return True
             except SyntaxError as e:
@@ -147,19 +147,21 @@ class FileManager:
             if not directory_path:
                 logger.error("Path direktori kosong")
                 return False
-            
+
             if os.path.exists(directory_path):
                 if os.path.isdir(directory_path):
                     logger.debug(f"Direktori sudah ada: {directory_path}")
                     return True
                 else:
-                    logger.error(f"Path sudah ada tapi bukan direktori: {directory_path}")
+                    logger.error(
+                        f"Path sudah ada tapi bukan direktori: {directory_path}"
+                    )
                     return False
-            
+
             os.makedirs(directory_path, exist_ok=True)
             logger.info(f"Direktori berhasil dibuat: {directory_path}")
             return True
-            
+
         except Exception as e:
             logger.error(f"Error saat membuat direktori {directory_path}: {e}")
             return False
@@ -218,7 +220,6 @@ class FileManager:
                 return False
 
             # Copy file
-            import shutil
             shutil.copy2(source_path, dest_path)
             logger.info(f"File berhasil disalin: {source_path} -> {dest_path}")
             return True

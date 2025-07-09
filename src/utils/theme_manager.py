@@ -5,40 +5,48 @@ Tanggal Pembuatan: 24 Juni 2025
 Penulis: Tim Pengembangan
 """
 
+import logging
 import tkinter as tk
 from tkinter import ttk
-import logging
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+
 class ThemeManager:
     """Mengelola tema aplikasi (default & custom) untuk PyCraft Studio."""
+
     DEFAULT_THEMES = {
         "light": {
             "background": "#f5f5f5",
             "foreground": "#222",
             "button_bg": "#e0e0e0",
             "button_fg": "#222",
-            "accent": "#1976d2"
+            "accent": "#1976d2",
         },
         "dark": {
             "background": "#23272e",
             "foreground": "#f5f5f5",
             "button_bg": "#333a45",
             "button_fg": "#f5f5f5",
-            "accent": "#90caf9"
+            "accent": "#90caf9",
         },
         "neon": {
             "background": "#181824",
             "foreground": "#39ff14",
             "button_bg": "#22223b",
             "button_fg": "#f72585",
-            "accent": "#00f0ff"
-        }
+            "accent": "#00f0ff",
+        },
     }
 
-    def __init__(self, root: tk.Tk, theme: str = "light", custom_themes: Optional[dict] = None, default_theme_overrides: Optional[dict] = None):
+    def __init__(
+        self,
+        root: tk.Tk,
+        theme: str = "light",
+        custom_themes: Optional[dict] = None,
+        default_theme_overrides: Optional[dict] = None,
+    ):
         self.root = root
         self.style = ttk.Style(self.root)
         self.theme = theme
@@ -69,28 +77,77 @@ class ThemeManager:
     def _set_style(self, style_dict):
         self.root.configure(bg=style_dict["background"])
         self.style.theme_use("clam")
-        self.style.configure("TLabel", background=style_dict["background"], foreground=style_dict["foreground"])
+        self.style.configure(
+            "TLabel",
+            background=style_dict["background"],
+            foreground=style_dict["foreground"],
+        )
         self.style.configure("TFrame", background=style_dict["background"])
-        self.style.configure("TLabelframe", background=style_dict["background"], foreground=style_dict["foreground"])
-        self.style.configure("TLabelframe.Label", background=style_dict["background"], foreground=style_dict["foreground"])
-        self.style.configure("TButton", background=style_dict["button_bg"], foreground=style_dict["button_fg"], borderwidth=1)
-        self.style.map("TButton",
-            background=[("active", style_dict["accent"]), ("!active", style_dict["button_bg"])],
-            foreground=[("active", style_dict["button_fg"]), ("!active", style_dict["button_fg"])],
+        self.style.configure(
+            "TLabelframe",
+            background=style_dict["background"],
+            foreground=style_dict["foreground"],
         )
-        self.style.configure("TEntry", fieldbackground=style_dict["background"], foreground=style_dict["foreground"])
+        self.style.configure(
+            "TLabelframe.Label",
+            background=style_dict["background"],
+            foreground=style_dict["foreground"],
+        )
+        self.style.configure(
+            "TButton",
+            background=style_dict["button_bg"],
+            foreground=style_dict["button_fg"],
+            borderwidth=1,
+        )
+        self.style.map(
+            "TButton",
+            background=[
+                ("active", style_dict["accent"]),
+                ("!active", style_dict["button_bg"]),
+            ],
+            foreground=[
+                ("active", style_dict["button_fg"]),
+                ("!active", style_dict["button_fg"]),
+            ],
+        )
+        self.style.configure(
+            "TEntry",
+            fieldbackground=style_dict["background"],
+            foreground=style_dict["foreground"],
+        )
         self.style.configure("TNotebook", background=style_dict["background"])
-        self.style.configure("TNotebook.Tab", background=style_dict["button_bg"], foreground=style_dict["button_fg"])
-        self.style.map("TNotebook.Tab",
-            background=[("selected", style_dict["accent"]), ("!selected", style_dict["button_bg"])],
-            foreground=[("selected", style_dict["button_fg"]), ("!selected", style_dict["button_fg"])],
+        self.style.configure(
+            "TNotebook.Tab",
+            background=style_dict["button_bg"],
+            foreground=style_dict["button_fg"],
         )
-        self.style.configure("TCheckbutton", background=style_dict["background"], foreground=style_dict["foreground"])
-        self.style.configure("TCombobox", fieldbackground=style_dict["background"], background=style_dict["background"], foreground=style_dict["foreground"])
-        self.style.map("TCombobox",
+        self.style.map(
+            "TNotebook.Tab",
+            background=[
+                ("selected", style_dict["accent"]),
+                ("!selected", style_dict["button_bg"]),
+            ],
+            foreground=[
+                ("selected", style_dict["button_fg"]),
+                ("!selected", style_dict["button_fg"]),
+            ],
+        )
+        self.style.configure(
+            "TCheckbutton",
+            background=style_dict["background"],
+            foreground=style_dict["foreground"],
+        )
+        self.style.configure(
+            "TCombobox",
+            fieldbackground=style_dict["background"],
+            background=style_dict["background"],
+            foreground=style_dict["foreground"],
+        )
+        self.style.map(
+            "TCombobox",
             fieldbackground=[("readonly", style_dict["background"])],
             background=[("readonly", style_dict["background"])],
-            foreground=[("readonly", style_dict["foreground"])]
+            foreground=[("readonly", style_dict["foreground"])],
         )
 
     def _force_refresh(self):
@@ -142,4 +199,4 @@ class ThemeManager:
                 self.apply_theme("light")
 
     def export_custom_themes(self):
-        return self.custom_themes.copy() 
+        return self.custom_themes.copy()

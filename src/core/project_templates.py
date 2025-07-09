@@ -6,12 +6,12 @@ Penulis: Tim Pengembangan
 Contoh: generator = ProjectTemplateGenerator().get_available_templates()
 """
 
+import logging
 import os
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional
-from dataclasses import dataclass
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TemplateConfig:
     """Konfigurasi template proyek."""
-    
+
     name: str
     description: str
     dependencies: List[str]
@@ -30,10 +30,10 @@ class TemplateConfig:
 
 class ProjectTemplateGenerator:
     """Generator template proyek Python standar."""
-    
+
     def __init__(self):
         self.templates = self._initialize_templates()
-    
+
     def _initialize_templates(self) -> Dict[str, TemplateConfig]:
         """Inisialisasi template yang tersedia."""
         return {
@@ -43,11 +43,7 @@ class ProjectTemplateGenerator:
                 dependencies=["click>=8.0.0"],
                 entry_point="src/main.py",
                 additional_files=["requirements.txt", "README.md", ".gitignore"],
-                build_config={
-                    "console": "True",
-                    "onefile": "True",
-                    "name": "app"
-                }
+                build_config={"console": "True", "onefile": "True", "name": "app"},
             ),
             "gui": TemplateConfig(
                 name="GUI Application",
@@ -55,11 +51,7 @@ class ProjectTemplateGenerator:
                 dependencies=["tkinter"],
                 entry_point="src/main.py",
                 additional_files=["requirements.txt", "README.md", ".gitignore"],
-                build_config={
-                    "console": "False",
-                    "onefile": "True",
-                    "name": "app"
-                }
+                build_config={"console": "False", "onefile": "True", "name": "app"},
             ),
             "web": TemplateConfig(
                 name="Web Application",
@@ -67,11 +59,7 @@ class ProjectTemplateGenerator:
                 dependencies=["flask>=2.0.0", "gunicorn>=20.0.0"],
                 entry_point="src/main.py",
                 additional_files=["requirements.txt", "README.md", ".gitignore"],
-                build_config={
-                    "console": "True",
-                    "onefile": "True",
-                    "name": "webapp"
-                }
+                build_config={"console": "True", "onefile": "True", "name": "webapp"},
             ),
             "api": TemplateConfig(
                 name="API Application",
@@ -79,47 +67,60 @@ class ProjectTemplateGenerator:
                 dependencies=["fastapi>=0.68.0", "uvicorn>=0.15.0"],
                 entry_point="src/main.py",
                 additional_files=["requirements.txt", "README.md", ".gitignore"],
-                build_config={
-                    "console": "True",
-                    "onefile": "True",
-                    "name": "api"
-                }
+                build_config={"console": "True", "onefile": "True", "name": "api"},
             ),
             "microservice": TemplateConfig(
                 name="Microservice",
                 description="Microservice dengan FastAPI dan Docker",
                 dependencies=["fastapi>=0.68.0", "uvicorn>=0.15.0", "docker>=6.0.0"],
                 entry_point="src/main.py",
-                additional_files=["requirements.txt", "README.md", ".gitignore", "Dockerfile", "docker-compose.yml"],
+                additional_files=[
+                    "requirements.txt",
+                    "README.md",
+                    ".gitignore",
+                    "Dockerfile",
+                    "docker-compose.yml",
+                ],
                 build_config={
                     "console": "True",
                     "onefile": "True",
-                    "name": "microservice"
-                }
+                    "name": "microservice",
+                },
             ),
             "data_science": TemplateConfig(
                 name="Data Science Project",
                 description="Project data science dengan Jupyter dan pandas",
-                dependencies=["pandas>=1.3.0", "numpy>=1.21.0", "matplotlib>=3.4.0", "jupyter>=1.0.0"],
+                dependencies=[
+                    "pandas>=1.3.0",
+                    "numpy>=1.21.0",
+                    "matplotlib>=3.4.0",
+                    "jupyter>=1.0.0",
+                ],
                 entry_point="src/main.py",
-                additional_files=["requirements.txt", "README.md", ".gitignore", "notebooks/"],
-                build_config={
-                    "console": "True",
-                    "onefile": "True",
-                    "name": "data_app"
-                }
+                additional_files=[
+                    "requirements.txt",
+                    "README.md",
+                    ".gitignore",
+                    "notebooks/",
+                ],
+                build_config={"console": "True", "onefile": "True", "name": "data_app"},
             ),
             "automation": TemplateConfig(
                 name="Automation Script",
                 description="Script otomatisasi dengan scheduling",
                 dependencies=["schedule>=1.1.0", "requests>=2.25.0"],
                 entry_point="src/main.py",
-                additional_files=["requirements.txt", "README.md", ".gitignore", "config/"],
+                additional_files=[
+                    "requirements.txt",
+                    "README.md",
+                    ".gitignore",
+                    "config/",
+                ],
                 build_config={
                     "console": "True",
                     "onefile": "True",
-                    "name": "automation"
-                }
+                    "name": "automation",
+                },
             ),
             "desktop_modern": TemplateConfig(
                 name="Modern Desktop App",
@@ -130,8 +131,8 @@ class ProjectTemplateGenerator:
                 build_config={
                     "console": "False",
                     "onefile": "True",
-                    "name": "desktop_app"
-                }
+                    "name": "desktop_app",
+                },
             ),
             "cli_argparse": TemplateConfig(
                 name="CLI Argparse Application",
@@ -139,32 +140,29 @@ class ProjectTemplateGenerator:
                 dependencies=[],
                 entry_point="src/main.py",
                 additional_files=["requirements.txt", "README.md", ".gitignore"],
-                build_config={
-                    "console": "True",
-                    "onefile": "True",
-                    "name": "cli_app"
-                }
-            )
+                build_config={"console": "True", "onefile": "True", "name": "cli_app"},
+            ),
         }
-    
+
     def get_available_templates(self) -> List[str]:
         """Mendapatkan daftar template yang tersedia."""
         return list(self.templates.keys())
-    
+
     def get_template_info(self, template_name: str) -> Optional[TemplateConfig]:
         """Mendapatkan informasi template."""
         return self.templates.get(template_name)
-    
-    def create_project(self, project_name: str, template_name: str, 
-                      output_path: str) -> bool:
+
+    def create_project(
+        self, project_name: str, template_name: str, output_path: str
+    ) -> bool:
         """
         Membuat proyek baru berdasarkan template.
-        
+
         Args:
             project_name: Nama proyek.
             template_name: Jenis template.
             output_path: Path untuk output proyek.
-            
+
         Returns:
             True jika berhasil, False jika gagal.
         """
@@ -173,63 +171,58 @@ class ProjectTemplateGenerator:
             if not template:
                 logger.error(f"Template tidak ditemukan: {template_name}")
                 return False
-            
+
             project_path = Path(output_path) / project_name
             if project_path.exists():
                 logger.error(f"Direktori sudah ada: {project_path}")
                 return False
-            
+
             # Buat struktur direktori
             self._create_directory_structure(project_path)
-            
+
             # Buat file-file template
             self._create_template_files(project_path, project_name, template)
-            
+
             logger.info(f"Proyek berhasil dibuat: {project_path}")
             return True
-            
+
         except Exception as e:
             logger.error(f"Error saat membuat proyek: {e}")
             return False
-    
+
     def _create_directory_structure(self, project_path: Path):
         """Membuat struktur direktori proyek."""
-        directories = [
-            "src",
-            "tests",
-            "resources",
-            "docs",
-            "config"
-        ]
-        
+        directories = ["src", "tests", "resources", "docs", "config"]
+
         for directory in directories:
             (project_path / directory).mkdir(parents=True, exist_ok=True)
             (project_path / directory / "__init__.py").touch()
-    
-    def _create_template_files(self, project_path: Path, project_name: str, 
-                              template: TemplateConfig):
+
+    def _create_template_files(
+        self, project_path: Path, project_name: str, template: TemplateConfig
+    ):
         """Membuat file-file template."""
-        
+
         # Main entry point
         main_content = self._get_main_template(template.name.lower())
         (project_path / "src" / "main.py").write_text(main_content)
-        
+
         # Requirements.txt
         requirements_content = self._get_requirements_template(template.dependencies)
         (project_path / "requirements.txt").write_text(requirements_content)
-        
+
         # README.md
         readme_content = self._get_readme_template(project_name, template)
         (project_path / "README.md").write_text(readme_content)
-        
+
         # .gitignore
         gitignore_content = self._get_gitignore_template()
         (project_path / ".gitignore").write_text(gitignore_content)
-        
+
         # Build config
         build_config_content = self._get_build_config_template(template.build_config)
         (project_path / "build_config.py").write_text(build_config_content)
-    
+
     def _get_main_template(self, template_type: str) -> str:
         """Mendapatkan template main.py berdasarkan jenis."""
         templates = {
@@ -267,14 +260,14 @@ class App:
         self.root = root
         self.root.title("{project_name}")
         self.root.geometry("400x300")
-        
+
         # Widget
         self.label = tk.Label(root, text="Hello, World!")
         self.label.pack(pady=20)
-        
+
         self.button = tk.Button(root, text="Click Me!", command=self.show_message)
         self.button.pack(pady=10)
-    
+
     def show_message(self):
         messagebox.showinfo("Info", "Button clicked!")
 
@@ -457,33 +450,33 @@ def analyze_data(data: pd.DataFrame):
     """Analyze the data."""
     if data is None:
         return
-    
+
     print("=== Data Analysis ===")
     print(f"Shape: {{data.shape}}")
     print(f"Columns: {{list(data.columns)}}")
     print("\\nSummary Statistics:")
     print(data.describe())
-    
+
     # Create visualization
     plt.figure(figsize=(10, 6))
     data.plot.scatter(x='x', y='y', c='category', colormap='viridis')
     plt.title('Data Visualization')
     plt.savefig('output/visualization.png')
     plt.close()
-    
+
     logger.info("Analysis completed")
 
 
 def main():
     """Main function."""
     print("Starting Data Science Project...")
-    
+
     # Load data
     data = load_data()
-    
+
     # Analyze data
     analyze_data(data)
-    
+
     print("Data Science project completed!")
 
 
@@ -519,14 +512,14 @@ def sample_task():
     """Sample automation task."""
     try:
         logger.info("Running automation task...")
-        
+
         # Example: Check a website
         response = requests.get("https://httpbin.org/get", timeout=10)
         if response.status_code == 200:
             logger.info("Task completed successfully")
         else:
             logger.warning(f"Task failed with status: {{response.status_code}}")
-            
+
     except Exception as e:
         logger.error(f"Error in automation task: {{e}}")
 
@@ -551,16 +544,16 @@ def load_config():
 def main():
     """Main function."""
     logger.info("Starting automation script...")
-    
+
     # Load configuration
     config = load_config()
-    
+
     # Schedule tasks
     schedule.every(config["schedule_interval"]).seconds.do(sample_task)
-    
+
     # Run initial task
     sample_task()
-    
+
     # Keep running
     while True:
         try:
@@ -593,7 +586,7 @@ class ModernApp(QMainWindow):
         super().__init__()
         self.setWindowTitle("{project_name}")
         self.setGeometry(100, 100, 600, 400)
-        
+
         # Set modern style
         self.setStyleSheet("""
             QMainWindow {{
@@ -615,32 +608,32 @@ class ModernApp(QMainWindow):
                 color: #333;
             }}
         """)
-        
+
         # Create central widget
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        
+
         # Create layout
         layout = QVBoxLayout()
         central_widget.setLayout(layout)
-        
+
         # Add widgets
         title_label = QLabel("Welcome to {project_name}")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         layout.addWidget(title_label)
-        
+
         info_label = QLabel("This is a modern desktop application built with PyQt6")
         info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(info_label)
-        
+
         button = QPushButton("Click Me!")
         button.clicked.connect(self.show_message)
         layout.addWidget(button)
-        
+
         # Add spacing
         layout.addStretch()
-    
+
     def show_message(self):
         """Show a message when button is clicked."""
         from PyQt6.QtWidgets import QMessageBox
@@ -659,19 +652,19 @@ if __name__ == "__main__":
     main()
 ''',
             "cli_argparse": (
-                'import argparse\n\n'
-                'def main():\n'
+                "import argparse\n\n"
+                "def main():\n"
                 '    parser = argparse.ArgumentParser(description="Aplikasi CLI dengan argparse")\n'
                 '    parser.add_argument("--name", default="World", help="Nama untuk disapa")\n'
-                '    args = parser.parse_args()\n'
+                "    args = parser.parse_args()\n"
                 '    print(f"Hello, {args.name}!")\n\n'
                 'if __name__ == "__main__":\n'
-                '    main()\n'
-            )
+                "    main()\n"
+            ),
         }
-        
+
         return templates.get(template_type, templates["console"])
-    
+
     def _get_requirements_template(self, dependencies: List[str]) -> str:
         """Mendapatkan template requirements.txt."""
         content = "# Dependencies\n"
@@ -682,7 +675,7 @@ if __name__ == "__main__":
         content += "black>=21.0.0\n"
         content += "flake8>=3.8.0\n"
         return content
-    
+
     def _get_readme_template(self, project_name: str, template: TemplateConfig) -> str:
         """Mendapatkan template README.md."""
         return f"""# {project_name}
@@ -724,7 +717,7 @@ pytest tests/
 └── config/        # Konfigurasi
 ```
 """
-    
+
     def _get_gitignore_template(self) -> str:
         """Mendapatkan template .gitignore."""
         return """# Byte-compiled / optimized / DLL files
@@ -785,7 +778,7 @@ venv.bak/
 .DS_Store
 Thumbs.db
 """
-    
+
     def _get_build_config_template(self, build_config: Dict[str, str]) -> str:
         """Mendapatkan template build_config.py."""
         return f'''"""
@@ -813,4 +806,4 @@ def build_app():
 
 if __name__ == "__main__":
     build_app()
-''' 
+'''

@@ -129,12 +129,12 @@
 
 ## 📈 Roadmap
 
-### Planned Features
-- [ ] Dark mode theme
-- [ ] Plugin system
-- [ ] Cloud build integration
-- [ ] Advanced optimization
-- [ ] Multi-language support
+### Fitur & Status
+- [x] Dark mode theme (done v1.2)
+- [ ] Plugin system (planned)
+- [ ] Cloud build integration (planned)
+- [x] Advanced optimization (done v1.3)
+- [ ] Multi-language support (planned)
 
 ### Known Issues
 - pkg_resources deprecation warning (akan diperbaiki)
@@ -142,4 +142,4 @@
 
 ---
 
-**PyCraft Studio Enhanced** - Dokumentasi lengkap untuk pengalaman development yang optimal! 📚🐍✨ 
+**PyCraft Studio Enhanced** - Dokumentasi lengkap untuk pengalaman development yang optimal! 📚🐍✨

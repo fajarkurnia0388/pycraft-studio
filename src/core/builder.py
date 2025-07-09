@@ -14,7 +14,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Any
+from typing import Any, List, Optional
 
 from src.utils.file_utils import FileManager, FileValidator
 
@@ -47,7 +47,7 @@ class BuildResult:
     output_path: Optional[str]
     error_message: Optional[str]
     build_time: float
-    status: 'BuildStatus'
+    status: "BuildStatus"
     log_output: str
 
 
@@ -181,10 +181,10 @@ class ProjectBuilder:
                 return False
 
             # Validasi ekstensi file
-            if not file_path.endswith('.py'):
+            if not file_path.endswith(".py"):
                 logger.error(f"File harus ber ekstensi .py: {file_path}")
                 return False
-            
+
             # Validasi format output
             if output_format not in self.get_supported_formats():
                 logger.error(f"Format output tidak didukung: {output_format}")
@@ -197,7 +197,7 @@ class ProjectBuilder:
 
             logger.info(f"Validasi input berhasil: {file_path} -> {output_format}")
             return True
-            
+
         except Exception as e:
             logger.error(f"Error saat validasi input: {e}")
             return False
@@ -396,7 +396,7 @@ class ProjectBuilder:
 
         return output_path
 
-    def get_build_status(self) -> 'BuildStatus':
+    def get_build_status(self) -> "BuildStatus":
         """
         Mendapatkan status build saat ini.
 

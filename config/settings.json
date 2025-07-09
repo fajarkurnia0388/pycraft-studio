@@ -4,7 +4,7 @@
   "auto_save": true,
   "output_directory": "/home/fakur18/Latihan/PyCraft Studio/output",
   "log_level": "INFO",
-  "theme": "neon",
+  "theme": "default",
   "custom_themes": {},
   "default_theme_overrides": {}
 }

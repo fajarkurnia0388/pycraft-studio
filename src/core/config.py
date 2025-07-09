@@ -9,6 +9,8 @@ Contoh: config = ConfigManager().load_config()
 import json
 import logging
 import os
+import sys
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 # Setup logging
@@ -34,12 +36,30 @@ class ConfigManager:
             config_path: Path ke file konfigurasi. Jika None,
                         akan menggunakan default path.
         """
-        self.base_dir = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        )
-
         if config_path is None:
-            self.config_path = os.path.join(self.base_dir, "config", "settings.json")
+            if getattr(sys, "frozen", False):
+                # Running as binary (PyInstaller)
+                if sys.platform == "win32":
+                    base_config_dir = os.path.join(
+                        os.environ.get("APPDATA", os.path.expanduser("~")),
+                        "PyCraftStudio",
+                    )
+                elif sys.platform == "darwin":
+                    base_config_dir = os.path.expanduser(
+                        "~/Library/Application Support/PyCraftStudio"
+                    )
+                else:
+                    base_config_dir = os.path.expanduser("~/.pycraftstudio")
+                os.makedirs(base_config_dir, exist_ok=True)
+                self.config_path = os.path.join(base_config_dir, "settings.json")
+                self.base_dir = base_config_dir
+            else:
+                self.base_dir = os.path.dirname(
+                    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                )
+                self.config_path = os.path.join(
+                    self.base_dir, "config", "settings.json"
+                )
         else:
             self.config_path = config_path
 
@@ -69,15 +89,15 @@ class ConfigManager:
             if not os.path.exists(self.config_path):
                 logger.warning(f"File konfigurasi tidak ditemukan: {self.config_path}")
                 return self.default_config.copy()
-            
-            with open(self.config_path, 'r', encoding='utf-8') as f:
+
+            with open(self.config_path, "r", encoding="utf-8") as f:
                 config = json.load(f)
-            
+
             # Validasi konfigurasi
             validated_config = self._validate_config(config)
             logger.info(f"Konfigurasi berhasil dimuat dari: {self.config_path}")
             return validated_config
-            
+
         except json.JSONDecodeError as e:
             logger.error(f"Error parsing JSON konfigurasi: {e}")
             logger.info("Menggunakan konfigurasi default")
@@ -105,8 +125,8 @@ class ConfigManager:
             config_dir = os.path.dirname(self.config_path)
             if config_dir:
                 os.makedirs(config_dir, exist_ok=True)
-            
-            with open(self.config_path, 'w', encoding='utf-8') as f:
+
+            with open(self.config_path, "w", encoding="utf-8") as f:
                 json.dump(validated_config, f, indent=2, ensure_ascii=False)
 
             logger.info(f"Konfigurasi berhasil disimpan ke: {self.config_path}")
@@ -130,12 +150,12 @@ class ConfigManager:
         try:
             config = self.load_config()
             config[key] = value
-            
+
             success = self.save_config(config)
             if success:
                 logger.info(f"Konfigurasi '{key}' berhasil diupdate")
             return success
-            
+
         except Exception as e:
             logger.error(f"Error saat update konfigurasi '{key}': {e}")
             return False
@@ -156,7 +176,7 @@ class ConfigManager:
             value = config.get(key, default)
             logger.debug(f"Mengambil konfigurasi '{key}': {value}")
             return value
-            
+
         except Exception as e:
             logger.error(f"Error saat mengambil konfigurasi '{key}': {e}")
             return default
@@ -209,12 +229,16 @@ class ConfigManager:
                     if isinstance(value, dict):
                         validated_config[key] = value
                     else:
-                        logger.warning(f"custom_themes harus dict. Menggunakan default.")
+                        logger.warning(
+                            f"custom_themes harus dict. Menggunakan default."
+                        )
                 elif key == "default_theme_overrides":
                     if isinstance(value, dict):
                         validated_config[key] = value
                     else:
-                        logger.warning(f"default_theme_overrides harus dict. Menggunakan default.")
+                        logger.warning(
+                            f"default_theme_overrides harus dict. Menggunakan default."
+                        )
                 elif isinstance(value, expected_type):
                     validated_config[key] = value
                 else:

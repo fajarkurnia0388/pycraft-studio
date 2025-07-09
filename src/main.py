@@ -6,20 +6,22 @@ Penulis: Tim Pengembangan
 Contoh: python -m src.main
 """
 
-import sys
 import logging
-from src.gui.enhanced_main_window import EnhancedMainWindow
+import sys
+
 from src.core.config import ConfigManager
+from src.gui.enhanced_main_window import EnhancedMainWindow
+
 
 def setup_logging():
     """Setup logging configuration."""
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
-            logging.FileHandler('builder_app.log'),  # Log ke file
-            logging.StreamHandler()  # Log ke console
-        ]
+            logging.FileHandler("builder_app.log"),  # Log ke file
+            logging.StreamHandler(),  # Log ke console
+        ],
     )
     return logging.getLogger(__name__)
 
@@ -29,9 +31,6 @@ def main():
     logger = setup_logging()
     try:
         logger.info("Memulai PyCraft Studio Enhanced")
-        # Initialize config manager
-        config_manager = ConfigManager()
-        logger.info("Config manager berhasil diinisialisasi")
         # Create and run enhanced main window
         app = EnhancedMainWindow()
         logger.info("Enhanced main window berhasil dibuat")
@@ -44,4 +43,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main()) 
+    sys.exit(main())
