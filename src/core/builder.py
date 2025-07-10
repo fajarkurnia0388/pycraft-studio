@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, List, Optional
+import shlex
 
 from src.utils.file_utils import FileManager, FileValidator
 
@@ -69,6 +70,7 @@ class ProjectBuilder:
         self.output_directory = output_directory or "output"
         self.current_process: Optional[subprocess.Popen] = None
         self.build_status = BuildStatus.PENDING
+        self._cancel_requested = False  # Flag cancel
 
         # Ensure output directory exists
         FileManager.ensure_directory_exists(self.output_directory)
@@ -78,6 +80,10 @@ class ProjectBuilder:
         python_file: str,
         output_format: str,
         additional_args: Optional[List[str]] = None,
+        use_spec: bool = False,
+        spec_file: Optional[str] = None,
+        extra_hiddenimports: Optional[List[str]] = None,
+        timeout: int = 600,  # Timeout global build (detik)
     ) -> BuildResult:
         """
         Membangun proyek Python menjadi executable.
@@ -86,14 +92,44 @@ class ProjectBuilder:
             python_file: Path ke file Python yang akan di-build.
             output_format: Format output (exe, app, binary).
             additional_args: Argumen tambahan untuk PyInstaller.
+            use_spec: Jika True, build menggunakan file .spec.
+            spec_file: Path ke file .spec jika digunakan.
+            extra_hiddenimports: List hidden import tambahan untuk patch .spec.
+            timeout: Timeout global build (detik).
 
         Returns:
             BuildResult berisi hasil build.
         """
         start_time = time.time()
         self.build_status = BuildStatus.RUNNING
-
+        self._cancel_requested = False  # Flag cancel
         try:
+            # Preflight check dependency native
+            preflight_log = self._preflight_check_native(python_file, additional_args)
+            if preflight_log.get("error"):
+                logger.error(f"Preflight check gagal: {preflight_log['error']}")
+                return BuildResult(
+                    success=False,
+                    output_path=None,
+                    error_message=f"Preflight check gagal: {preflight_log['error']}",
+                    build_time=time.time() - start_time,
+                    status=BuildStatus.FAILED,
+                    log_output=preflight_log.get("log", ""),
+                )
+            # Cek keberadaan file PIL/_tkinter_finder.py jika build GUI
+            try:
+                import site
+                import os
+                pil_path = None
+                for sp in site.getsitepackages():
+                    candidate = os.path.join(sp, 'PIL', '_tkinter_finder.py')
+                    if os.path.exists(candidate):
+                        pil_path = candidate
+                        break
+                if not pil_path:
+                    logger.warning('File PIL/_tkinter_finder.py tidak ditemukan di site-packages. Jika build GUI Python gagal, cek versi Pillow.')
+            except Exception as e:
+                logger.warning(f'Gagal cek file PIL/_tkinter_finder.py: {e}')
             # Validate input
             if not self._validate_build_input(python_file, output_format):
                 return BuildResult(
@@ -116,17 +152,46 @@ class ProjectBuilder:
                     log_output="",
                 )
 
-            # Prepare build command
-            cmd = self._prepare_build_command(
-                python_file, output_format, additional_args
-            )
+            if use_spec and spec_file:
+                # Patch .spec file untuk hidden import/resource
+                if extra_hiddenimports:
+                    self._patch_spec_hiddenimports(spec_file, extra_hiddenimports)
+                cmd = ["pyinstaller", spec_file]
+                logger.info(f"Build command (spec): {' '.join(cmd)}")
+            else:
+                # Prepare build command (CLI)
+                cmd = self._prepare_build_command(
+                    python_file, output_format, additional_args
+                )
+                logger.info(f"Build command: {' '.join(cmd)}")
 
-            # Execute build
-            result = self._execute_build(cmd, python_file)
+            # Cek dan backup file output jika sudah ada
+            output_path = self._get_output_path(python_file)
+            if os.path.exists(output_path):
+                try:
+                    import datetime
+                    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                    backup_path = f"{output_path}.bak_{ts}"
+                    os.rename(output_path, backup_path)
+                    logger.warning(f"File output sudah ada, dibackup ke: {backup_path}")
+                except Exception as e:
+                    logger.error(f"Gagal backup file output lama: {e}")
+                    return BuildResult(
+                        success=False,
+                        output_path=None,
+                        error_message=f"Gagal backup file output lama: {e}",
+                        build_time=time.time() - start_time,
+                        status=BuildStatus.FAILED,
+                        log_output="",
+                    )
+
+            # Execute build with timeout
+            result = self._execute_build(cmd, python_file, timeout)
+            # Gabungkan log preflight dengan log build
+            if hasattr(result, "log_output") and result.log_output:
+                result.log_output = (preflight_log.get("log", "") or "") + result.log_output
             result.build_time = time.time() - start_time
-
             return result
-
         except Exception as e:
             logger.error(f"Error tidak terduga saat build: {e}")
             self.build_status = BuildStatus.FAILED
@@ -141,25 +206,18 @@ class ProjectBuilder:
 
     def cancel_build(self) -> bool:
         """
-        Membatalkan build yang sedang berjalan.
-
+        Membatalkan proses build yang sedang berjalan.
         Returns:
-            True jika berhasil dibatalkan, False jika tidak.
+            True jika proses berhasil dibatalkan, False jika tidak.
         """
         if self.current_process and self.current_process.poll() is None:
+            self._cancel_requested = True
             try:
-                self.current_process.terminate()
-                self.current_process.wait(timeout=5)
-                self.build_status = BuildStatus.CANCELLED
-                logger.info("Build berhasil dibatalkan")
-                return True
-            except subprocess.TimeoutExpired:
                 self.current_process.kill()
-                self.build_status = BuildStatus.CANCELLED
-                logger.warning("Build dipaksa dibatalkan")
+                logger.info("Proses build berhasil dibatalkan.")
                 return True
             except Exception as e:
-                logger.error(f"Error saat membatalkan build: {e}")
+                logger.error(f"Gagal membatalkan proses build: {e}")
                 return False
         return False
 
@@ -271,27 +329,41 @@ class ProjectBuilder:
             # Additional options for macOS app
             cmd.extend(["--windowed"])
 
-        # Add output directory
-        cmd.extend([f"--distpath={self.output_directory}"])
+        # Add output directory (NO quoting here)
+        cmd.append(f"--distpath={self.output_directory}")
 
-        # Add additional arguments
+        # Add additional arguments (NO quoting here)
         if additional_args:
-            cmd.extend(additional_args)
+            for arg in additional_args:
+                if arg.startswith("--add-data="):
+                    # Pisahkan src:dst, masukkan apa adanya
+                    val = arg[len("--add-data="):]
+                    if ":" in val:
+                        src, dst = val.split(":", 1)
+                        cmd.append(f"--add-data={src}:{dst}")
+                    else:
+                        cmd.append(arg)
+                elif arg.startswith("--icon="):
+                    icon_path = arg[len("--icon=") :]
+                    cmd.append(f"--icon={icon_path}")
+                else:
+                    cmd.append(arg)
 
-        # Add input file
+        # Add input file (NO quoting here)
         cmd.append(python_file)
 
-        logger.info(f"Build command: {' '.join(cmd)}")
+        # Untuk preview command di log, tampilkan dengan quoting agar user bisa copy-paste
+        preview_cmd = ' '.join(shlex.quote(x) for x in cmd)
+        logger.info(f"Build command: {preview_cmd}")
         return cmd
 
-    def _execute_build(self, cmd: List[str], python_file: str) -> BuildResult:
+    def _execute_build(self, cmd: List[str], python_file: str, timeout: int = 600) -> BuildResult:
         """
-        Menjalankan proses build.
-
+        Menjalankan proses build dengan timeout dan cancel support.
         Args:
             cmd: Command untuk dijalankan.
             python_file: Path ke file Python.
-
+            timeout: Timeout global build (detik).
         Returns:
             BuildResult berisi hasil build.
         """
@@ -305,10 +377,34 @@ class ProjectBuilder:
                 bufsize=1,
                 universal_newlines=True,
             )
-
-            # Capture output
-            stdout, stderr = self.current_process.communicate()
-            return_code = self.current_process.returncode
+            self._cancel_requested = False
+            try:
+                stdout, stderr = self.current_process.communicate(timeout=timeout)
+                return_code = self.current_process.returncode
+            except subprocess.TimeoutExpired:
+                self.current_process.kill()
+                stdout, stderr = self.current_process.communicate()
+                self.build_status = BuildStatus.FAILED
+                logger.error("Build timeout (otomatis dihentikan)")
+                return BuildResult(
+                    success=False,
+                    output_path=None,
+                    error_message="Build timeout (otomatis dihentikan)",
+                    build_time=0,
+                    status=BuildStatus.FAILED,
+                    log_output=stdout + stderr,
+                )
+            if self._cancel_requested:
+                self.current_process.kill()
+                logger.warning("Build dibatalkan oleh user.")
+                return BuildResult(
+                    success=False,
+                    output_path=None,
+                    error_message="Build dibatalkan oleh user.",
+                    build_time=0,
+                    status=BuildStatus.FAILED,
+                    log_output=stdout + stderr,
+                )
 
             # Prepare log output
             log_output = stdout + stderr
@@ -420,3 +516,74 @@ class ProjectBuilder:
                 supported_formats.append(format_enum.value)
 
         return supported_formats
+
+    def _patch_spec_hiddenimports(self, spec_file: str, hiddenimports: list):
+        """Patch file .spec untuk menambah hiddenimports jika belum ada."""
+        try:
+            with open(spec_file, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+            new_lines = []
+            for line in lines:
+                if "hiddenimports=" in line:
+                    # Tambahkan hidden import jika belum ada
+                    for hi in hiddenimports:
+                        if hi not in line:
+                            line = line.rstrip().rstrip("]") + f", '{hi}']\n"
+                new_lines.append(line)
+            with open(spec_file, "w", encoding="utf-8") as f:
+                f.writelines(new_lines)
+            logger.info(f"Patched .spec file {spec_file} with hiddenimports: {hiddenimports}")
+        except Exception as e:
+            logger.warning(f"Gagal patch .spec file: {e}")
+
+    def _preflight_check_native(self, python_file: str, additional_args: Optional[list]) -> dict:
+        """
+        Preflight check dependency native (tcl/tk, compiler, library OS).
+        Returns dict: {"error": str, "log": str}
+        """
+        import shutil
+        import sys
+        import importlib.util
+        log = []
+        # Cek tcl/tk jika build GUI tkinter
+        need_tk = False
+        if additional_args:
+            for arg in additional_args:
+                if "tkinter" in arg or "ttkbootstrap" in arg or "--windowed" in arg:
+                    need_tk = True
+        if need_tk:
+            try:
+                import tkinter
+                if not hasattr(tkinter, "Tk"):
+                    raise ImportError("tkinter.Tk tidak ditemukan")
+                log.append("[OK] Modul tkinter tersedia.")
+            except Exception as e:
+                return {"error": f"tkinter/tcl/tk tidak ditemukan: {e}", "log": "[ERROR] tkinter/tcl/tk tidak ditemukan\n"}
+            # Cek tcl/tk library di OS
+            if sys.platform.startswith("linux"):
+                if not shutil.which("wish"):
+                    log.append("[WARNING] Binary 'wish' (tcl/tk) tidak ditemukan di PATH. GUI mungkin gagal.")
+            elif sys.platform == "darwin":
+                if not shutil.which("wish"):
+                    log.append("[WARNING] Binary 'wish' (tcl/tk) tidak ditemukan di PATH. GUI mungkin gagal.")
+            elif sys.platform == "win32":
+                # Windows biasanya bundle tcl/tk
+                pass
+        # Cek compiler (Linux/Mac)
+        if sys.platform.startswith("linux") or sys.platform == "darwin":
+            if not shutil.which("gcc") and not shutil.which("clang"):
+                log.append("[WARNING] Compiler C (gcc/clang) tidak ditemukan. Build ekstensi native mungkin gagal.")
+        # Cek library OS penting (contoh: ldd di Linux)
+        if sys.platform.startswith("linux"):
+            if not shutil.which("ldd"):
+                log.append("[WARNING] Tool 'ldd' tidak ditemukan. Tidak bisa cek dependency binary.")
+        # Cek python3
+        if not shutil.which("python3"):
+            log.append("[WARNING] python3 tidak ditemukan di PATH.")
+        # Cek PyInstaller
+        if not shutil.which("pyinstaller"):
+            return {"error": "PyInstaller tidak ditemukan di PATH.", "log": "[ERROR] PyInstaller tidak ditemukan\n"}
+        # Cek importlib.metadata (untuk Python >=3.8)
+        if importlib.util.find_spec("importlib.metadata") is None:
+            log.append("[WARNING] importlib.metadata tidak tersedia. Validasi dependency terbatas.")
+        return {"log": "[Preflight Check]\n" + "\n".join(log) + "\n"}

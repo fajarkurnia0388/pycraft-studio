@@ -153,16 +153,18 @@ class ProjectTemplateGenerator:
         return self.templates.get(template_name)
 
     def create_project(
-        self, project_name: str, template_name: str, output_path: str
+        self, project_name: str, template_name: str, output_path: str,
+        gui_library: str = '', backend: str = '', database: str = '', testing: str = '', utility: str = '',
+        custom_projectrules: str = '', custom_background: str = ''
     ) -> bool:
         """
         Membuat proyek baru berdasarkan template.
-
         Args:
             project_name: Nama proyek.
             template_name: Jenis template.
             output_path: Path untuk output proyek.
-
+            gui_library, backend, database, testing, utility: Pilihan stack dari selector (opsional).
+            custom_projectrules, custom_background: Konten custom (opsional).
         Returns:
             True jika berhasil, False jika gagal.
         """
@@ -181,7 +183,11 @@ class ProjectTemplateGenerator:
             self._create_directory_structure(project_path)
 
             # Buat file-file template
-            self._create_template_files(project_path, project_name, template)
+            self._create_template_files(
+                project_path, project_name, template,
+                gui_library, backend, database, testing, utility,
+                custom_projectrules, custom_background
+            )
 
             logger.info(f"Proyek berhasil dibuat: {project_path}")
             return True
@@ -199,29 +205,39 @@ class ProjectTemplateGenerator:
             (project_path / directory / "__init__.py").touch()
 
     def _create_template_files(
-        self, project_path: Path, project_name: str, template: TemplateConfig
+        self, project_path: Path, project_name: str, template: TemplateConfig,
+        gui_library: str = '', backend: str = '', database: str = '', testing: str = '', utility: str = '',
+        custom_projectrules: str = '', custom_background: str = ''
     ):
-        """Membuat file-file template."""
-
+        """Membuat file-file template, termasuk projectrules.md & background.md dinamis/custom."""
         # Main entry point
         main_content = self._get_main_template(template.name.lower())
         (project_path / "src" / "main.py").write_text(main_content)
-
         # Requirements.txt
         requirements_content = self._get_requirements_template(template.dependencies)
         (project_path / "requirements.txt").write_text(requirements_content)
-
         # README.md
         readme_content = self._get_readme_template(project_name, template)
         (project_path / "README.md").write_text(readme_content)
-
         # .gitignore
         gitignore_content = self._get_gitignore_template()
         (project_path / ".gitignore").write_text(gitignore_content)
-
         # Build config
         build_config_content = self._get_build_config_template(template.build_config)
         (project_path / "build_config.py").write_text(build_config_content)
+        # projectrules.md
+        if custom_projectrules:
+            (project_path / "projectrules.md").write_text(custom_projectrules)
+        else:
+            default_rules = f"""# Aturan Coding & Best Practice\n\n- Bahasa: Python 3.x, PEP8, auto-format Black.\n- Struktur folder: src/, tests/, docs/, config/, resources/\n- Library utama: {gui_library or '-'}, {backend or '-'}, {database or '-'}, {testing or '-'}, {utility or '-'}\n- Testing: pytest, coverage minimal 85%\n- Linting: flake8, black\n- Version control: git, branch protection, PR review\n- Security: validasi input, dependency scan\n- Dokumentasi: README.md, docstring, progress_log.md\n"""
+            (project_path / "projectrules.md").write_text(default_rules)
+        # background.md
+        if custom_background:
+            (project_path / "background.md").write_text(custom_background)
+        else:
+            alasan_otomatis = f"Stack dipilih karena {gui_library or '-'} untuk GUI, {backend or '-'} untuk backend, {database or '-'} untuk database, {testing or '-'} untuk testing, {utility or '-'} untuk utilitas. Kombinasi ini umum untuk project {template.name.lower()}."
+            default_bg = f"""# Latar Belakang & Tujuan Project\n\n- Elevator Pitch: Aplikasi {template.name} dengan stack {gui_library or '-'}, {backend or '-'}, {database or '-'}, {testing or '-'}, {utility or '-'}\n- Masalah yang ingin diselesaikan: ...\n- Target user: ...\n- Alasan pemilihan stack: {alasan_otomatis}\n- Roadmap awal: v1.0, v1.1, dst.\n"""
+            (project_path / "background.md").write_text(default_bg)
 
     def _get_main_template(self, template_type: str) -> str:
         """Mendapatkan template main.py berdasarkan jenis."""

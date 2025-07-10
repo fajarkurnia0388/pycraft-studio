@@ -65,14 +65,41 @@ class ThemeManager:
     def get_style_dict(self, theme: str):
         return self.themes.get(theme, self.DEFAULT_THEMES["light"])
 
-    def apply_theme(self, theme: str):
-        if theme not in self.themes:
-            logger.warning(f"Tema tidak dikenal: {theme}, fallback ke light.")
-            theme = "light"
-        self.theme = theme
-        style_dict = self.get_style_dict(theme)
+    def apply_theme(self, theme_name: str = None):
+        if not theme_name:
+            theme_name = self.theme if self.theme else 'light'
+        if not theme_name or theme_name not in self.themes:
+            logger.warning(f"Tema tidak dikenal: {theme_name}, fallback ke light.")
+            theme_name = "light"
+        self.theme = theme_name or 'light'
+        style_dict = self.get_style_dict(self.theme)
         self._set_style(style_dict)
         self._force_refresh()
+
+        style = ttk.Style(self.root)
+        # Theme color config
+        if self.theme == 'dark':
+            style.theme_use('clam')
+            style.configure('TCombobox',
+                fieldbackground='#222',
+                background='#222',
+                foreground='#fff',
+                selectbackground='#333',
+                selectforeground='#fff',
+                bordercolor='#444',
+                font=('Arial', 11)
+            )
+        else:
+            style.theme_use('clam')
+            style.configure('TCombobox',
+                fieldbackground='#fff',
+                background='#fff',
+                foreground='#222',
+                selectbackground='#e0e0e0',
+                selectforeground='#222',
+                bordercolor='#bbb',
+                font=('Arial', 11)
+            )
 
     def _set_style(self, style_dict):
         self.root.configure(bg=style_dict["background"])

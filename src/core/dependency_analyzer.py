@@ -109,7 +109,13 @@ class DependencyAnalyzer:
             except Exception as e:
                 logger.warning(f"Error saat parsing file {file_path}: {e}")
                 continue
-
+        # Mapping khusus agar builder lebih cerdas
+        if "PIL" in imports["external"]:
+            imports["external"].add("pillow")
+        if "tkinter" in imports["external"]:
+            imports["external"].add("tkinter")
+        if "ttkbootstrap" in imports["external"]:
+            imports["external"].add("ttkbootstrap")
         return imports
 
     def _parse_imports(self, content: str) -> Set[str]:

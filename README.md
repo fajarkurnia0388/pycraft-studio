@@ -58,7 +58,8 @@ Aplikasi GUI Python untuk membangun script Python menjadi executable dengan fitu
 
 ## 📋 Requirements
 
-- Python 3.8+
+- Python 3.9+
+- ttkbootstrap >=1.10.1
 - PyInstaller 5.0.0+
 - Dependencies lainnya lihat `requirements.txt`
 

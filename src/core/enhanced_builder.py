@@ -36,16 +36,18 @@ class EnhancedProjectBuilder(ProjectBuilder):
         self.dependency_status = "pending"
 
     def create_project_from_template(
-        self, project_name: str, template_name: str, output_path: str
+        self, project_name: str, template_name: str, output_path: str,
+        gui_library: str = '', backend: str = '', database: str = '', testing: str = '', utility: str = '',
+        custom_projectrules: str = '', custom_background: str = ''
     ) -> Dict[str, Any]:
         """
         Membuat proyek baru dari template.
-
         Args:
             project_name: Nama proyek.
             template_name: Jenis template.
             output_path: Path untuk output.
-
+            gui_library, backend, database, testing, utility: Pilihan stack dari selector (opsional).
+            custom_projectrules, custom_background: Konten custom (opsional).
         Returns:
             Dictionary berisi hasil pembuatan proyek.
         """
@@ -64,7 +66,9 @@ class EnhancedProjectBuilder(ProjectBuilder):
 
             # Buat proyek
             success = self.template_generator.create_project(
-                project_name, template_name, output_path
+                project_name, template_name, output_path,
+                gui_library, backend, database, testing, utility,
+                custom_projectrules, custom_background
             )
 
             if not success:
@@ -298,6 +302,33 @@ NEXT STEPS:
             logger.error(f"Error saat generate laporan: {e}")
             return f"Error: {e}"
 
+    def get_final_build_args(
+        self,
+        project_path: str,
+        output_format: str,
+        custom_args: Optional[str] = None,
+    ) -> List[str]:
+        """
+        Menghasilkan argumen build final (merge custom args user + argumen otomatis builder).
+        Args:
+            project_path: Path ke project.
+            output_format: Format output.
+            custom_args: String argumen custom user (boleh kosong).
+        Returns:
+            List argumen build final.
+        """
+        dependency_analysis = self.dependency_analyzer.analyze_project(project_path)
+        custom_args_list = custom_args.split() if custom_args else []
+        optimized_args = self._optimize_build_args(custom_args_list, dependency_analysis)
+        # Hilangkan duplikasi sambil pertahankan urutan (custom user > otomatis)
+        seen = set()
+        final_args = []
+        for arg in custom_args_list + optimized_args:
+            if arg not in seen:
+                final_args.append(arg)
+                seen.add(arg)
+        return final_args
+
     def _optimize_build_args(
         self, additional_args: Optional[List[str]], dependency_analysis: Dict[str, Any]
     ) -> List[str]:
@@ -319,10 +350,48 @@ NEXT STEPS:
             if "--add-data" not in str(optimized_args):
                 optimized_args.extend(["--add-data", "resources:resources"])
 
-        # Optimasi ukuran
-        if "--strip" not in optimized_args:
-            optimized_args.append("--strip")
+        # Deteksi ttkbootstrap dan tambahkan hidden import serta resource
+        if "ttkbootstrap" in external_deps:
+            if not any(arg.startswith("--hidden-import=ttkbootstrap.themes") for arg in optimized_args):
+                optimized_args.append("--hidden-import=ttkbootstrap.themes")
+            try:
+                from importlib.util import find_spec
+                import os
+                import site
+                ttk_mod = find_spec("ttkbootstrap")
+                if ttk_mod and ttk_mod.submodule_search_locations:
+                    site_packages = ttk_mod.submodule_search_locations[0]
+                    themes_path = os.path.join(site_packages, "themes")
+                    assets_path = os.path.join(site_packages, "assets")
+                    if os.path.exists(themes_path):
+                        optimized_args.append(f"--add-data={themes_path}:ttkbootstrap/themes")
+                    if os.path.exists(assets_path):
+                        optimized_args.append(f"--add-data={assets_path}:ttkbootstrap/assets")
+            except Exception as e:
+                logger.warning(f"Gagal mendeteksi resource ttkbootstrap: {e}")
 
+        # Fallback: jika ada tkinter/ttkbootstrap, SELALU tambahkan hidden import PIL._tkinter_finder dan --windowed
+        if "tkinter" in external_deps or "ttkbootstrap" in external_deps:
+            if not any(arg.startswith("--hidden-import=PIL._tkinter_finder") for arg in optimized_args):
+                optimized_args.append("--hidden-import=PIL._tkinter_finder")
+            if not any(arg == "--windowed" for arg in optimized_args):
+                optimized_args.append("--windowed")
+            # Tambahkan --add-data untuk file _tkinter_finder.py jika ada
+            try:
+                import site
+                import os
+                pil_path = None
+                for sp in site.getsitepackages():
+                    candidate = os.path.join(sp, 'PIL', '_tkinter_finder.py')
+                    if os.path.exists(candidate):
+                        pil_path = candidate
+                        break
+                if pil_path:
+                    add_data_arg = f"--add-data={pil_path}:PIL/"
+                    if add_data_arg not in optimized_args:
+                        optimized_args.append(add_data_arg)
+            except Exception as e:
+                logger.warning(f'Gagal menambah --add-data untuk _tkinter_finder.py: {e}')
         return optimized_args
 
     def _get_optimization_recommendations(
